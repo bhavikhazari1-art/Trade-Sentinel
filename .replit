@@ -26,3 +26,17 @@ externalPort = 80
 [[ports]]
 localPort = 8081
 externalPort = 8081
+
+[[ports]]
+localPort = 21194
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+VITE_FIREBASE_API_KEY = "AIzaSyA5LW0rSD7R3O8qURNFwq0rYdbxV5s7fZQ"
+VITE_FIREBASE_AUTH_DOMAIN = "trading-journal-124c9.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID = "trading-journal-124c9"
+VITE_FIREBASE_STORAGE_BUCKET = "trading-journal-124c9.firebasestorage.app"
+VITE_FIREBASE_MESSAGING_SENDER_ID = "701283104947"
+VITE_FIREBASE_APP_ID = "1:701283104947:web:c85ae52ed4516f556c58c6"

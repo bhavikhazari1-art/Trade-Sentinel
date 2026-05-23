@@ -2,27 +2,54 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TradesProvider } from "@/contexts/TradesContext";
+import Layout from "@/components/Layout";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import AddTrade from "@/pages/AddTrade";
+import Analytics from "@/pages/Analytics";
+import AICoach from "@/pages/AICoach";
+import Calendar from "@/pages/Calendar";
+import Profile from "@/pages/Profile";
 
 const queryClient = new QueryClient();
 
-function Home() {
+function LoadingScreen() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Replit Agent is building...</h1>
-        <p className="mt-2 text-sm text-gray-600">Your app will appear here once it's ready.</p>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
-function Router() {
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Login />;
+
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
+    <TradesProvider>
+      <Layout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/add" component={AddTrade} />
+          <Route path="/analytics" component={Analytics} />
+          <Route path="/ai" component={AICoach} />
+          <Route path="/calendar" component={Calendar} />
+          <Route path="/profile" component={Profile} />
+          <Route>
+            <div className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">Page not found</p>
+            </div>
+          </Route>
+        </Switch>
+      </Layout>
+    </TradesProvider>
   );
 }
 
@@ -30,9 +57,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AppRoutes />
+          </WouterRouter>
+        </AuthProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
