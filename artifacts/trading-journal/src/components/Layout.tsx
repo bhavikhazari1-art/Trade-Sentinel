@@ -5,15 +5,17 @@ import {
   BarChart3,
   Brain,
   CalendarDays,
+  Target,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { path: "/add", icon: PlusCircle, label: "Add Trade" },
+  { path: "/", icon: LayoutDashboard, label: "Home" },
+  { path: "/add", icon: PlusCircle, label: "Add" },
   { path: "/analytics", icon: BarChart3, label: "Analytics" },
-  { path: "/ai", icon: Brain, label: "AI Coach" },
+  { path: "/ai", icon: Brain, label: "AI" },
+  { path: "/goals", icon: Target, label: "Goals" },
   { path: "/calendar", icon: CalendarDays, label: "Calendar" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -30,31 +32,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Bottom navigation */}
       <nav className="flex-shrink-0 border-t border-border/60 bg-sidebar/95 backdrop-blur-xl pb-safe">
-        <div className="flex items-center justify-around px-2 pt-2 pb-2">
+        <div className="flex items-center justify-around px-1 pt-1.5 pb-1.5">
           {navItems.map(({ path, icon: Icon, label }) => {
             const active = path === "/" ? location === "/" : location.startsWith(path);
             return (
               <Link key={path} href={path}>
                 <button
-                  data-testid={`nav-${label.toLowerCase().replace(" ", "-")}`}
+                  data-testid={`nav-${label.toLowerCase().replace(/\s+/g, "-")}`}
                   className={cn(
-                    "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-0",
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                    "flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl transition-all duration-200 min-w-0",
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <div className={cn(
                     "relative p-1.5 rounded-xl transition-all duration-200",
                     active && "bg-primary/15 pulse-gold"
                   )}>
-                    <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                    <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
                     {active && (
                       <span className="absolute inset-0 rounded-xl bg-primary/10 blur-sm" />
                     )}
                   </div>
                   <span className={cn(
-                    "text-[10px] font-medium tracking-wide transition-all duration-200",
+                    "text-[9px] font-medium tracking-wide transition-all duration-200 leading-none",
                     active ? "text-primary" : "text-muted-foreground"
                   )}>
                     {label}

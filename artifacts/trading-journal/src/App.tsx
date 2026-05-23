@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TradesProvider } from "@/contexts/TradesContext";
+import { GoalsProvider } from "@/contexts/GoalsContext";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -12,6 +13,7 @@ import Analytics from "@/pages/Analytics";
 import AICoach from "@/pages/AICoach";
 import Calendar from "@/pages/Calendar";
 import Profile from "@/pages/Profile";
+import Goals from "@/pages/Goals";
 
 const queryClient = new QueryClient();
 
@@ -34,21 +36,24 @@ function AppRoutes() {
 
   return (
     <TradesProvider>
-      <Layout>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/add" component={AddTrade} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/ai" component={AICoach} />
-          <Route path="/calendar" component={Calendar} />
-          <Route path="/profile" component={Profile} />
-          <Route>
-            <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Page not found</p>
-            </div>
-          </Route>
-        </Switch>
-      </Layout>
+      <GoalsProvider>
+        <Layout>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/add" component={AddTrade} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/ai" component={AICoach} />
+            <Route path="/calendar" component={Calendar} />
+            <Route path="/goals" component={Goals} />
+            <Route path="/profile" component={Profile} />
+            <Route>
+              <div className="flex items-center justify-center h-64">
+                <p className="text-muted-foreground">Page not found</p>
+              </div>
+            </Route>
+          </Switch>
+        </Layout>
+      </GoalsProvider>
     </TradesProvider>
   );
 }
