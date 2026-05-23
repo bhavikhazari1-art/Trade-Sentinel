@@ -10,7 +10,9 @@ import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip,
 } from "recharts";
 import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 
+// ─── Helpers ───────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, trend, color }: {
   label: string; value: string; sub?: string;
   icon: React.ElementType; trend?: "up" | "down" | "neutral"; color?: string;
@@ -45,6 +47,145 @@ const tooltipStyle = {
   },
 };
 
+// ─── 30-Day Heatmap ────────────────────────────────────────
+function StreakHeatmap({
+  dailyPnl,
+  currentStreak,
+}: {
+  dailyPnl: Record<string, number>;
+  currentStreak: number;
+}) {
+  const days = useMemo(() => {
+    const result: { key: string; label: string; pnl: number | null; isToday: boolean }[] = [];
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      const pnl = dailyPnl[key] ?? null;
+      result.push({
+        key,
+        label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        pnl,
+        isToday: i === 0,
+      });
+    }
+    return result;
+  }, [dailyPnl]);
+
+  const profitDays = days.filter(d => d.pnl != null && d.pnl > 0).length;
+  const lossDays   = days.filter(d => d.pnl != null && d.pnl < 0).length;
+  const activeDays = profitDays + lossDays;
+
+  // Tooltip state
+  const [hovered, setHovered] = (function () {
+    // Using inline useState-like pattern via useMemo — but we need actual state.
+    // We'll handle this below via inline state in the component.
+    return [null as null, (_: null) => {}];
+  })();
+  void hovered; void setHovered;
+
+  return (
+    <div className="glass-card rounded-3xl p-4 border border-white/[0.06]">
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "p-1.5 rounded-xl transition-colors",
+            currentStreak >= 5 ? "bg-primary/20" :
+            currentStreak >= 1 ? "bg-primary/10" : "bg-muted"
+          )}>
+            <Flame
+              size={14}
+              className={cn(
+                "transition-colors",
+                currentStreak >= 3 ? "text-primary" : "text-muted-foreground"
+              )}
+            />
+          </div>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            30-Day Streak
+          </span>
+        </div>
+
+        {/* Streak badge */}
+        {currentStreak > 0 ? (
+          <div className={cn(
+            "flex items-center gap-1.5 rounded-full px-3 py-1 border transition-all",
+            currentStreak >= 5
+              ? "bg-primary/20 border-primary/40 pulse-gold"
+              : "bg-primary/10 border-primary/25"
+          )}>
+            <Flame size={11} className="text-primary" />
+            <span className="text-xs font-bold text-primary">{currentStreak} on fire</span>
+          </div>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">{activeDays} active days</span>
+        )}
+      </div>
+
+      {/* Heatmap grid — 6 rows × 5 cols = 30 cells */}
+      <div
+        className="grid gap-[5px]"
+        style={{ gridTemplateColumns: "repeat(10, 1fr)" }}
+      >
+        {days.map(day => {
+          const isProfit = day.pnl != null && day.pnl > 0;
+          const isLoss   = day.pnl != null && day.pnl < 0;
+          const isBig    = Math.abs(day.pnl ?? 0) > 200;
+
+          return (
+            <div
+              key={day.key}
+              title={`${day.label}${day.pnl != null ? `: ${day.pnl >= 0 ? "+" : ""}${day.pnl.toFixed(0)}` : ": no trades"}`}
+              className={cn(
+                "aspect-square rounded-md transition-all duration-300 relative",
+                isProfit
+                  ? isBig
+                    ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                    : "bg-emerald-400/70"
+                  : isLoss
+                    ? isBig
+                      ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                      : "bg-red-500/60"
+                    : "bg-white/[0.05]",
+                day.isToday && "ring-2 ring-primary ring-offset-1 ring-offset-card"
+              )}
+            />
+          );
+        })}
+      </div>
+
+      {/* Legend + summary */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/70" />
+            <span className="text-[10px] text-muted-foreground">{profitDays} profit</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm bg-red-500/60" />
+            <span className="text-[10px] text-muted-foreground">{lossDays} loss</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm bg-white/[0.05]" />
+            <span className="text-[10px] text-muted-foreground">{30 - activeDays} off</span>
+          </div>
+        </div>
+        {activeDays > 0 && (
+          <span className={cn(
+            "text-[10px] font-bold",
+            profitDays > lossDays ? "text-emerald-400" : "text-muted-foreground"
+          )}>
+            {Math.round((profitDays / activeDays) * 100)}% win days
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard ─────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
   const { trades, loading } = useTrades();
@@ -53,23 +194,50 @@ export default function Dashboard() {
     const closed = trades.filter(t => t.status === "closed" && t.pnl != null);
     const wins   = closed.filter(t => (t.pnl ?? 0) > 0);
     const losses = closed.filter(t => (t.pnl ?? 0) < 0);
-    const totalPnl  = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const winRate   = closed.length ? (wins.length / closed.length) * 100 : 0;
-    const avgWin    = wins.length ? wins.reduce((s, t) => s + (t.pnl ?? 0), 0) / wins.length : 0;
-    const avgLoss   = losses.length ? Math.abs(losses.reduce((s, t) => s + (t.pnl ?? 0), 0) / losses.length) : 0;
-    const rr        = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const totalPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
+    const winRate  = closed.length ? (wins.length / closed.length) * 100 : 0;
+    const avgWin   = wins.length ? wins.reduce((s, t) => s + (t.pnl ?? 0), 0) / wins.length : 0;
+    const avgLoss  = losses.length ? Math.abs(losses.reduce((s, t) => s + (t.pnl ?? 0), 0) / losses.length) : 0;
+    const rr       = avgLoss > 0 ? avgWin / avgLoss : 0;
 
+    // Winning streak (consecutive wins from latest backwards)
     let streak = 0, maxStreak = 0, cur = 0;
+    const sorted = [...closed].sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+    for (const t of sorted) {
+      if ((t.pnl ?? 0) > 0) { streak++; } else break;
+    }
     for (const t of [...closed].reverse()) {
       if ((t.pnl ?? 0) > 0) { cur++; maxStreak = Math.max(maxStreak, cur); } else cur = 0;
     }
-    for (const t of closed) { if ((t.pnl ?? 0) > 0) streak++; else break; }
 
     return {
       closed, wins, losses, totalPnl, winRate, avgWin, avgLoss, rr,
       streak, maxStreak, open: trades.filter(t => t.status === "open"),
     };
   }, [trades]);
+
+  // Daily P&L map for heatmap
+  const dailyPnl = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of trades) {
+      if (t.pnl == null) continue;
+      map[t.entryDate] = (map[t.entryDate] ?? 0) + t.pnl;
+    }
+    return map;
+  }, [trades]);
+
+  // Consecutive profitable days streak (by calendar day)
+  const dayStreak = useMemo(() => {
+    const sorted = Object.entries(dailyPnl)
+      .sort(([a], [b]) => b.localeCompare(a)); // most recent first
+    let s = 0;
+    for (const [, pnl] of sorted) {
+      if (pnl > 0) s++; else break;
+    }
+    return s;
+  }, [dailyPnl]);
+
+  const displayStreak = Math.max(stats.streak, dayStreak);
 
   const equityCurve = useMemo(() => {
     const sorted = [...trades.filter(t => t.status === "closed" && t.pnl != null)]
@@ -100,10 +268,15 @@ export default function Dashboard() {
           <h1 className="text-lg font-bold font-serif gold-text leading-tight">{firstName}</h1>
         </div>
         <div className="flex items-center gap-2">
-          {stats.streak > 0 && (
-            <div className="flex items-center gap-1 bg-primary/15 border border-primary/25 rounded-full px-2.5 py-1">
+          {displayStreak > 0 && (
+            <div className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 border",
+              displayStreak >= 5
+                ? "bg-primary/25 border-primary/40 pulse-gold"
+                : "bg-primary/15 border-primary/25"
+            )}>
               <Flame size={12} className="text-primary" />
-              <span className="text-xs font-bold text-primary">{stats.streak}</span>
+              <span className="text-xs font-bold text-primary">{displayStreak}</span>
             </div>
           )}
           <div className="w-9 h-9 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center">
@@ -135,9 +308,9 @@ export default function Dashboard() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-3 stagger">
-          <StatCard label="Win Rate"    value={`${stats.winRate.toFixed(1)}%`}  icon={Target}    trend={stats.winRate >= 50 ? "up" : "down"} sub={`${stats.wins.length}W / ${stats.losses.length}L`} />
-          <StatCard label="Risk/Reward" value={`${stats.rr.toFixed(2)}R`}        icon={Shield}    trend={stats.rr >= 1.5 ? "up" : "neutral"}  color="bg-blue-500/10" />
-          <StatCard label="Avg Win"     value={formatCurrency(stats.avgWin)}     icon={TrendingUp} trend="up"   sub="per trade" />
+          <StatCard label="Win Rate"    value={`${stats.winRate.toFixed(1)}%`}  icon={Target}       trend={stats.winRate >= 50 ? "up" : "down"}  sub={`${stats.wins.length}W / ${stats.losses.length}L`} />
+          <StatCard label="Risk/Reward" value={`${stats.rr.toFixed(2)}R`}        icon={Shield}       trend={stats.rr >= 1.5 ? "up" : "neutral"}   color="bg-blue-500/10" />
+          <StatCard label="Avg Win"     value={formatCurrency(stats.avgWin)}     icon={TrendingUp}   trend="up"   sub="per trade" />
           <StatCard label="Avg Loss"    value={formatCurrency(stats.avgLoss)}    icon={TrendingDown} trend="down" sub="per trade" color="bg-red-500/10" />
         </div>
 
@@ -168,6 +341,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* 30-Day Streak Heatmap */}
+        <StreakHeatmap dailyPnl={dailyPnl} currentStreak={displayStreak} />
 
         {/* Quick stats row */}
         <div className="grid grid-cols-3 gap-2">
