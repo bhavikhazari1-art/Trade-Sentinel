@@ -2,15 +2,21 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades } from "@/contexts/TradesContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
 import { formatCurrency, getPnlColor } from "@/lib/utils";
-import { LogOut, User, Award, Trash2, TrendingUp, Shield, ChevronRight, AlertCircle } from "lucide-react";
+import {
+  LogOut, User, Award, Trash2, TrendingUp, Shield,
+  ChevronRight, AlertCircle, Bell, BellOff, BellRing, CheckCircle,
+} from "lucide-react";
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const { trades, deleteTrade, loading } = useTrades();
   const { toast } = useToast();
+  const notif = useNotifications();
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [deleteId, setDeleteId] = useState<string|null>(null);
+  const [testSent, setTestSent] = useState(false);
 
   const closed  = trades.filter(t => t.status === "closed" && t.pnl != null);
   const totalPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
@@ -32,8 +38,43 @@ export default function Profile() {
     }
   };
 
+  const handleToggleNotifications = async () => {
+    if (notif.status === "subscribed") {
+      await notif.unsubscribe();
+      toast({ title: "Notifications off", description: "You won't receive push notifications." });
+    } else {
+      await notif.subscribe();
+      if (notif.status !== "denied") {
+        toast({ title: "Notifications enabled!", description: "You'll get daily reminders and weekly summaries." });
+      }
+    }
+  };
+
+  const handleTestNotification = async () => {
+    await notif.sendTest();
+    setTestSent(true);
+    setTimeout(() => setTestSent(false), 3000);
+    toast({ title: "Test sent!", description: "Check your notification bar." });
+  };
+
   const firstName = user?.displayName?.split(" ")[0] ?? "Trader";
   const tier = winRate >= 60 ? "Elite Trader" : winRate >= 40 ? "Rising Trader" : "Learning Trader";
+
+  const notifLabel = {
+    unsupported: "Not supported",
+    denied:      "Blocked by browser",
+    default:     "Enable notifications",
+    granted:     "Enable notifications",
+    subscribed:  "Notifications active",
+  }[notif.status];
+
+  const notifDesc = {
+    unsupported: "Your browser doesn't support push notifications.",
+    denied:      "Allow notifications in your browser settings to enable this.",
+    default:     "Get daily reminders to log trades and weekly summaries.",
+    granted:     "Get daily reminders to log trades and weekly summaries.",
+    subscribed:  "Daily reminders at 6 PM · Weekly summaries every Monday.",
+  }[notif.status];
 
   return (
     <div className="flex flex-col">
@@ -74,6 +115,88 @@ export default function Profile() {
                 <p className="text-[9px] text-muted-foreground mt-0.5 font-medium">{label}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Push Notifications */}
+        <div className="glass-card rounded-3xl p-5 border border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-4">
+            <div className={`p-1.5 rounded-xl ${notif.status === "subscribed" ? "bg-primary/15" : "bg-muted"}`}>
+              {notif.status === "subscribed"
+                ? <BellRing size={14} className="text-primary" />
+                : notif.status === "denied"
+                  ? <BellOff size={14} className="text-muted-foreground" />
+                  : <Bell size={14} className="text-muted-foreground" />
+              }
+            </div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Push Notifications</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {/* Status + description */}
+            <div>
+              <p className={`text-sm font-semibold ${notif.status === "subscribed" ? "text-foreground" : "text-muted-foreground"}`}>
+                {notifLabel}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{notifDesc}</p>
+            </div>
+
+            {notif.status !== "unsupported" && (
+              <div className="flex flex-col gap-2">
+                <button
+                  data-testid="btn-toggle-notifications"
+                  onClick={handleToggleNotifications}
+                  disabled={notif.loading || notif.status === "denied"}
+                  className={`w-full py-3.5 rounded-2xl text-sm font-bold border transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                    notif.status === "subscribed"
+                      ? "bg-destructive/15 border-destructive/30 text-destructive hover:bg-destructive/25"
+                      : notif.status === "denied"
+                        ? "bg-muted border-border text-muted-foreground cursor-not-allowed"
+                        : "bg-primary/15 border-primary/30 text-primary hover:bg-primary/25"
+                  }`}
+                >
+                  {notif.loading
+                    ? "Loading…"
+                    : notif.status === "subscribed"
+                      ? "Turn Off Notifications"
+                      : notif.status === "denied"
+                        ? "Blocked — Update Browser Settings"
+                        : "Enable Push Notifications"
+                  }
+                </button>
+
+                {notif.status === "subscribed" && (
+                  <button
+                    data-testid="btn-test-notification"
+                    onClick={handleTestNotification}
+                    className="w-full py-3 rounded-2xl text-xs font-semibold border border-border/40 text-muted-foreground hover:text-foreground hover:border-border transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    {testSent
+                      ? <><CheckCircle size={13} className="text-emerald-400" /> Notification sent!</>
+                      : "Send Test Notification"
+                    }
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Reminder schedule (only shown when subscribed) */}
+            {notif.status === "subscribed" && (
+              <div className="flex flex-col gap-1.5 mt-1 pt-3 border-t border-border/30">
+                {[
+                  { icon: Bell, label: "Daily trade reminder", time: "6:00 PM UTC" },
+                  { icon: TrendingUp, label: "Weekly performance summary", time: "Mon 8:00 AM UTC" },
+                ].map(({ icon: Icon, label, time }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon size={11} className="text-primary" />
+                      <span className="text-[11px] text-muted-foreground">{label}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">{time}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

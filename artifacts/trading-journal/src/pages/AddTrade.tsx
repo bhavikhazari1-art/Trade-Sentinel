@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useTrades, TradeInput } from "@/contexts/TradesContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "wouter";
 import { ChevronDown, Upload, X, Check, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 export default function AddTrade() {
   const { addTrade } = useTrades();
   const { toast } = useToast();
+  const { notifyTradeLogged } = useNotifications();
   const [, setLocation] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +94,12 @@ export default function AddTrade() {
         screenshotFile: form.screenshotFile || undefined,
       });
       toast({ title: "Trade logged!", description: `${form.symbol} saved.` });
+      const exitPnl = form.exitPrice && form.entryPrice && form.quantity
+        ? (parseFloat(form.exitPrice) - parseFloat(form.entryPrice))
+          * parseFloat(form.quantity)
+          * (form.direction === "short" ? -1 : 1)
+        : undefined;
+      void notifyTradeLogged(form.symbol, exitPnl);
       setLocation("/");
     } catch {
       toast({ title: "Error", description: "Failed to save trade.", variant: "destructive" });
