@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -57,11 +57,11 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255,255,255,.10);
+  --badge-outline: rgba(255,255,255,.05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255,255,255,.04);
+  --elevate-2: rgba(255,255,255,.09);
 
   --background: 224 20% 6%;
   --foreground: 220 15% 92%;
@@ -103,16 +103,14 @@
   --app-font-mono: Menlo, monospace;
   --radius: .75rem;
 
-  --shadow-2xs: 0px 1px 3px rgba(0,0,0,0.4);
-  --shadow-xs: 0px 2px 6px rgba(0,0,0,0.5);
-  --shadow-sm: 0px 4px 12px rgba(0,0,0,0.5);
-  --shadow: 0px 4px 16px rgba(0,0,0,0.6);
-  --shadow-md: 0px 8px 24px rgba(0,0,0,0.6);
-  --shadow-lg: 0px 12px 32px rgba(0,0,0,0.7);
-  --shadow-xl: 0px 20px 48px rgba(0,0,0,0.8);
-  --shadow-2xl: 0px 32px 64px rgba(0,0,0,0.9);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
+  --shadow-2xs: 0px 1px 3px rgba(0,0,0,.4);
+  --shadow-xs:  0px 2px 6px rgba(0,0,0,.5);
+  --shadow-sm:  0px 4px 12px rgba(0,0,0,.5);
+  --shadow:     0px 4px 16px rgba(0,0,0,.6);
+  --shadow-md:  0px 8px 24px rgba(0,0,0,.6);
+  --shadow-lg:  0px 12px 32px rgba(0,0,0,.7);
+  --shadow-xl:  0px 20px 48px rgba(0,0,0,.8);
+  --shadow-2xl: 0px 32px 64px rgba(0,0,0,.9);
 
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -121,22 +119,85 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Safe-area insets */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
 }
 
+/* ─── Base ─────────────────────────────────────────── */
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
   * { @apply border-border; }
+
+  html {
+    height: 100%;
+    /* Prevent text-size-adjust on iOS rotation */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  html, body, #root {
     height: 100%;
+    /* Prevent pull-to-refresh and rubber-banding globally */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    /* Prevent tap highlight on Android */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+  }
+
+  /* Touch-friendly minimum tap target */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Override for small decorative elements */
+  .tap-small {
+    min-height: unset;
+    min-width: unset;
+  }
+
+  input, select, textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    font-size: 16px; /* Prevent iOS zoom on focus */
   }
 }
 
-/* Gold gradient text */
+/* ─── Scroll container ────────────────────────────── */
+.scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  height: 100%;
+  /* Momentum scrolling on iOS */
+  scroll-behavior: smooth;
+}
+
+/* ─── Safe-area helpers ───────────────────────────── */
+.pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 0px); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-header { padding-top: 60px; }
+
+/* ─── Gold gradient text ─────────────────────────── */
 .gold-text {
   background: linear-gradient(135deg, #f6c948 0%, #e8a60c 50%, #ffd97d 100%);
   -webkit-background-clip: text;
@@ -144,7 +205,7 @@
   background-clip: text;
 }
 
-/* Glass card */
+/* ─── Glass card ─────────────────────────────────── */
 .glass-card {
   background: rgba(255,255,255,0.03);
   backdrop-filter: blur(20px);
@@ -152,20 +213,11 @@
   border: 1px solid rgba(255,255,255,0.07);
 }
 
-/* Scrollable container — prevents pull-to-refresh conflict */
-.scroll-container {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  height: 100%;
-}
-
-/* Gold shimmer animation */
+/* ─── Animations ─────────────────────────────────── */
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
-
 .shimmer {
   background: linear-gradient(90deg, #f6c948 0%, #ffd97d 50%, #f6c948 100%);
   background-size: 200% auto;
@@ -175,58 +227,96 @@
   background-clip: text;
 }
 
-/* Pulse glow */
 @keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(246, 201, 72, 0); }
-  50% { box-shadow: 0 0 20px 4px rgba(246, 201, 72, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(246,201,72,0); }
+  50%       { box-shadow: 0 0 20px 4px rgba(246,201,72,.15); }
 }
+.pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
 
-.pulse-gold {
-  animation: pulse-gold 2s ease-in-out infinite;
-}
-
-/* Number up animation */
 @keyframes countUp {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+.count-up { animation: countUp .5s ease-out forwards; }
 
-.count-up { animation: countUp 0.5s ease-out forwards; }
-
-/* Page slide in */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
+.page-enter { animation: slideInRight .25s ease-out forwards; }
 
-.page-enter { animation: slideIn 0.3s ease-out forwards; }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp .3s ease-out forwards; }
 
-/* Fade in */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+.fade-in { animation: fadeIn .4s ease-out forwards; }
 
-.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+/* Stagger */
+.stagger > * { opacity: 0; animation: fadeIn .35s ease-out forwards; }
+.stagger > *:nth-child(1) { animation-delay: .04s; }
+.stagger > *:nth-child(2) { animation-delay: .08s; }
+.stagger > *:nth-child(3) { animation-delay: .12s; }
+.stagger > *:nth-child(4) { animation-delay: .16s; }
+.stagger > *:nth-child(5) { animation-delay: .20s; }
+.stagger > *:nth-child(6) { animation-delay: .24s; }
+.stagger > *:nth-child(7) { animation-delay: .28s; }
+.stagger > *:nth-child(8) { animation-delay: .32s; }
 
-/* Stagger children */
-.stagger-children > * {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
-}
-.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
-
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* ─── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(246,201,72,0.2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(246,201,72,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(246,201,72,.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(246,201,72,.4); }
 
-/* Bottom nav safe area */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+/* ─── Page header ────────────────────────────────── */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(8,11,18,.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* ─── Bottom nav active pill ─────────────────────── */
+.nav-active-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(246,201,72,.12);
+  border: 1px solid rgba(246,201,72,.2);
+}
+
+/* ─── Input field unified style ──────────────────── */
+.field-input {
+  @apply w-full bg-input/40 border border-border rounded-2xl px-4 py-3.5 text-sm text-foreground
+         placeholder:text-muted-foreground
+         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40
+         transition-all duration-200;
+  font-size: 16px; /* prevent iOS zoom */
+}
+
+/* ─── Card hover ────────────────────────────────── */
+.card-hover {
+  @apply transition-all duration-200 active:scale-[0.98];
+}
+
+/* ─── Premium button ────────────────────────────── */
+.btn-primary {
+  @apply w-full bg-primary text-primary-foreground font-bold py-4 rounded-2xl
+         hover:brightness-110 active:scale-[0.97]
+         transition-all duration-200 shadow-lg text-[15px];
+}
+
+/* ─── Responsive chart wrapper ──────────────────── */
+.chart-wrapper {
+  width: 100%;
+  min-height: 0;
+}

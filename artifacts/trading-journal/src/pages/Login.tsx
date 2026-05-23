@@ -47,126 +47,100 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-primary/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/5 blur-[120px]" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-5 relative overflow-hidden"
+      style={{ paddingTop: "max(env(safe-area-inset-top,0px), 24px)", paddingBottom: "max(env(safe-area-inset-bottom,0px), 24px)" }}>
+
+      {/* Ambient glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-1/4 -left-1/4 w-[80vw] h-[80vw] rounded-full bg-primary/6 blur-[120px]" />
+        <div className="absolute -bottom-1/4 -right-1/4 w-[70vw] h-[70vw] rounded-full bg-blue-600/5 blur-[120px]" />
       </div>
 
-      <div className="w-full max-w-sm relative">
+      <div className="w-full max-w-sm relative flex flex-col gap-6">
         {/* Logo */}
-        <div className="text-center mb-8 fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/15 border border-primary/30 mb-4 pulse-gold">
-            <TrendingUp className="text-primary" size={32} strokeWidth={2} />
+        <div className="text-center fade-in">
+          <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-[22px] bg-primary/15 border border-primary/25 mb-4 pulse-gold shadow-xl">
+            <TrendingUp className="text-primary" size={34} strokeWidth={2} />
           </div>
-          <h1 className="text-2xl font-bold gold-text font-serif tracking-tight">TradeJournal</h1>
-          <p className="text-muted-foreground text-sm mt-1">Your AI-powered trading companion</p>
+          <h1 className="text-3xl font-bold gold-text font-serif tracking-tight">TradeJournal</h1>
+          <p className="text-muted-foreground text-sm mt-1.5">Your AI-powered trading companion</p>
         </div>
 
         {/* Card */}
-        <div className="glass-card rounded-2xl p-6 shadow-2xl fade-in" style={{ animationDelay: "0.1s" }}>
-          {/* Mode toggle */}
-          <div className="flex bg-muted rounded-xl p-1 mb-6">
-            <button
-              data-testid="btn-login-tab"
-              onClick={() => setMode("login")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                mode === "login" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              data-testid="btn-signup-tab"
-              onClick={() => setMode("signup")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                mode === "signup" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Sign Up
-            </button>
+        <div className="glass-card rounded-3xl p-6 shadow-2xl border border-white/[0.07] fade-in" style={{ animationDelay: ".08s" }}>
+          {/* Tab toggle */}
+          <div className="flex bg-muted/60 rounded-2xl p-1 mb-5">
+            {(["login", "signup"] as Mode[]).map(m => (
+              <button key={m}
+                data-testid={`btn-${m}-tab`}
+                onClick={() => setMode(m)}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 tap-small ${
+                  mode === m
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m === "login" ? "Sign In" : "Sign Up"}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {mode === "signup" && (
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
-                  data-testid="input-name"
-                  type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  className="w-full bg-input/50 border border-border rounded-xl pl-9 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                  data-testid="input-name" type="text" placeholder="Full Name"
+                  value={name} onChange={e => setName(e.target.value)} required
+                  className="field-input pl-10"
                 />
               </div>
             )}
-
             <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
-                data-testid="input-email"
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="w-full bg-input/50 border border-border rounded-xl pl-9 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                data-testid="input-email" type="email" placeholder="Email"
+                value={email} onChange={e => setEmail(e.target.value)} required
+                className="field-input pl-10"
               />
             </div>
-
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 data-testid="input-password"
                 type={showPass ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full bg-input/50 border border-border rounded-xl pl-9 pr-10 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                placeholder="Password (min 6 chars)"
+                value={password} onChange={e => setPassword(e.target.value)}
+                required minLength={6}
+                className="field-input pl-10 pr-11"
               />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <button type="button" onClick={() => setShowPass(!showPass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors tap-small p-1.5">
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
-            <button
-              data-testid="btn-submit-auth"
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-50 shadow-lg"
-            >
-              {loading ? "Loading..." : mode === "login" ? "Sign In" : "Create Account"}
+            <button data-testid="btn-submit-auth" type="submit" disabled={loading}
+              className="btn-primary mt-1">
+              {loading ? "Loading…" : mode === "login" ? "Sign In" : "Create Account"}
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-border/60" />
+            <span className="text-xs text-muted-foreground/60">or continue with</span>
+            <div className="flex-1 h-px bg-border/60" />
           </div>
 
-          <button
-            data-testid="btn-google-signin"
-            onClick={handleGoogle}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-secondary border border-border rounded-xl py-3 text-sm font-medium text-foreground hover:bg-secondary/80 active:scale-95 transition-all duration-200 disabled:opacity-50"
-          >
+          <button data-testid="btn-google-signin" onClick={handleGoogle} disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-white/[0.05] border border-white/[0.10] rounded-2xl py-3.5 text-sm font-semibold text-foreground hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200 disabled:opacity-50">
             <FcGoogle size={20} />
             Continue with Google
           </button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6 fade-in" style={{ animationDelay: "0.2s" }}>
-          Free forever. No credit card required.
+        <p className="text-center text-xs text-muted-foreground/50 fade-in" style={{ animationDelay: ".18s" }}>
+          Free forever · No credit card required
         </p>
       </div>
     </div>

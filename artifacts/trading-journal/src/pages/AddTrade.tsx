@@ -2,44 +2,49 @@ import { useState, useRef } from "react";
 import { useTrades, TradeInput } from "@/contexts/TradesContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import {
-  ChevronDown, Upload, X, Check, Tag
-} from "lucide-react";
+import { ChevronDown, Upload, X, Check, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EMOTIONS = [
   { value: "confident", label: "Confident", emoji: "💪" },
-  { value: "focused", label: "Focused", emoji: "🎯" },
-  { value: "neutral", label: "Neutral", emoji: "😐" },
-  { value: "fearful", label: "Fearful", emoji: "😨" },
-  { value: "anxious", label: "Anxious", emoji: "😰" },
-  { value: "greedy", label: "Greedy", emoji: "🤑" },
+  { value: "focused",   label: "Focused",   emoji: "🎯" },
+  { value: "neutral",   label: "Neutral",   emoji: "😐" },
+  { value: "fearful",   label: "Fearful",   emoji: "😨" },
+  { value: "anxious",   label: "Anxious",   emoji: "😰" },
+  { value: "greedy",    label: "Greedy",    emoji: "🤑" },
 ] as const;
 
 const EMOTIONS_AFTER = [
-  { value: "satisfied", label: "Satisfied", emoji: "😊" },
-  { value: "excited", label: "Excited", emoji: "🤩" },
-  { value: "neutral", label: "Neutral", emoji: "😐" },
-  { value: "regret", label: "Regret", emoji: "😔" },
+  { value: "satisfied",    label: "Satisfied",    emoji: "😊" },
+  { value: "excited",      label: "Excited",      emoji: "🤩" },
+  { value: "neutral",      label: "Neutral",      emoji: "😐" },
+  { value: "regret",       label: "Regret",       emoji: "😔" },
   { value: "disappointed", label: "Disappointed", emoji: "😞" },
 ] as const;
 
-const SETUPS = ["Breakout", "Pullback", "Reversal", "Momentum", "Gap Fill", "VWAP", "Support/Resistance", "Pattern", "News", "Other"];
-const ACCOUNTS = ["Main", "Demo", "Swing", "Options", "Futures", "Forex"];
-const COMMON_TAGS = ["FOMO", "Revenge", "Discipline", "Perfect Setup", "Overtraded", "Halved Size", "Broke Rules"];
+const SETUPS   = ["Breakout","Pullback","Reversal","Momentum","Gap Fill","VWAP","Support/Resistance","Pattern","News","Other"];
+const ACCOUNTS = ["Main","Demo","Swing","Options","Futures","Forex"];
+const TAGS     = ["FOMO","Revenge","Discipline","Perfect Setup","Overtraded","Halved Size","Broke Rules","Patient"];
 
-function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        {label} {required && <span className="text-primary">*</span>}
-      </label>
+    <div className="glass-card rounded-3xl p-5 border border-white/[0.06] flex flex-col gap-4">
+      <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{title}</p>
       {children}
     </div>
   );
 }
 
-const inputCls = "w-full bg-input/50 border border-border rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all";
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        {label}{required && <span className="text-primary ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default function AddTrade() {
   const { addTrade } = useTrades();
@@ -47,64 +52,27 @@ export default function AddTrade() {
   const [, setLocation] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<{
-    symbol: string;
-    direction: "long" | "short";
-    entryDate: string;
-    exitDate: string;
-    entryPrice: string;
-    exitPrice: string;
-    quantity: string;
-    emotion: TradeInput["emotion"];
-    emotionAfter: TradeInput["emotionAfter"];
-    setup: string;
-    account: string;
-    notes: string;
-    mistakes: string;
-    tags: string[];
-    screenshotFile: File | null;
-  }>({
-    symbol: "",
-    direction: "long",
-    entryDate: new Date().toISOString().split("T")[0],
-    exitDate: "",
-    entryPrice: "",
-    exitPrice: "",
-    quantity: "",
-    emotion: "neutral",
-    emotionAfter: undefined,
-    setup: "",
-    account: "Main",
-    notes: "",
-    mistakes: "",
-    tags: [],
-    screenshotFile: null,
+  const [form, setForm] = useState({
+    symbol: "", direction: "long" as "long" | "short",
+    entryDate: new Date().toISOString().split("T")[0], exitDate: "",
+    entryPrice: "", exitPrice: "", quantity: "",
+    emotion: "neutral" as TradeInput["emotion"],
+    emotionAfter: undefined as TradeInput["emotionAfter"],
+    setup: "", account: "Main", notes: "", mistakes: "",
+    tags: [] as string[], screenshotFile: null as File | null,
   });
-
   const [loading, setLoading] = useState(false);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
-
-  const toggleTag = (tag: string) => {
-    setForm(f => ({
-      ...f,
-      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag]
-    }));
-  };
+  const toggleTag = (tag: string) =>
+    setForm(f => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag] }));
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     set("screenshotFile", file);
-    const url = URL.createObjectURL(file);
-    setScreenshotPreview(url);
-  };
-
-  const removeScreenshot = () => {
-    set("screenshotFile", null);
-    setScreenshotPreview(null);
-    if (fileRef.current) fileRef.current.value = "";
+    setPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,23 +81,17 @@ export default function AddTrade() {
     setLoading(true);
     try {
       await addTrade({
-        symbol: form.symbol,
-        direction: form.direction,
+        symbol: form.symbol, direction: form.direction,
         entryPrice: parseFloat(form.entryPrice),
-        exitPrice: form.exitPrice ? parseFloat(form.exitPrice) : undefined,
-        quantity: parseFloat(form.quantity),
-        emotion: form.emotion,
-        emotionAfter: form.emotionAfter,
-        setup: form.setup,
-        notes: form.notes,
-        mistakes: form.mistakes,
-        account: form.account,
-        tags: form.tags,
-        entryDate: form.entryDate,
-        exitDate: form.exitDate || undefined,
+        exitPrice:  form.exitPrice ? parseFloat(form.exitPrice) : undefined,
+        quantity:   parseFloat(form.quantity),
+        emotion: form.emotion, emotionAfter: form.emotionAfter,
+        setup: form.setup, notes: form.notes, mistakes: form.mistakes,
+        account: form.account, tags: form.tags,
+        entryDate: form.entryDate, exitDate: form.exitDate || undefined,
         screenshotFile: form.screenshotFile || undefined,
       });
-      toast({ title: "Trade logged!", description: `${form.symbol} trade saved successfully.` });
+      toast({ title: "Trade logged!", description: `${form.symbol} saved.` });
       setLocation("/");
     } catch {
       toast({ title: "Error", description: "Failed to save trade.", variant: "destructive" });
@@ -139,46 +101,36 @@ export default function AddTrade() {
   };
 
   return (
-    <div className="px-4 pt-5 pb-4">
-      <div className="mb-5">
-        <h1 className="text-xl font-bold font-serif text-foreground">Log Trade</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Record your trade with full details</p>
-      </div>
+    <div className="flex flex-col">
+      {/* Header */}
+      <header className="page-header px-5 py-3.5">
+        <h1 className="text-lg font-bold font-serif text-foreground">Log Trade</h1>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Record every detail for better insights</p>
+      </header>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Symbol + Direction */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40 space-y-4">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">Trade Details</p>
+      <form onSubmit={handleSubmit} className="px-4 pt-4 pb-6 flex flex-col gap-4">
 
+        {/* Trade details */}
+        <Section title="Trade Details">
           <Field label="Symbol" required>
-            <input
-              data-testid="input-symbol"
-              type="text"
-              placeholder="AAPL, BTC, EUR/USD..."
-              value={form.symbol}
-              onChange={e => set("symbol", e.target.value.toUpperCase())}
-              className={inputCls}
-              required
-            />
+            <input data-testid="input-symbol" type="text" placeholder="AAPL · BTC · EUR/USD"
+              value={form.symbol} onChange={e => set("symbol", e.target.value.toUpperCase())}
+              className="field-input" required />
           </Field>
 
           <Field label="Direction" required>
-            <div className="flex gap-2">
-              {(["long", "short"] as const).map(dir => (
-                <button
-                  key={dir}
-                  type="button"
-                  data-testid={`btn-direction-${dir}`}
+            <div className="grid grid-cols-2 gap-2">
+              {(["long","short"] as const).map(dir => (
+                <button key={dir} type="button" data-testid={`btn-direction-${dir}`}
                   onClick={() => set("direction", dir)}
                   className={cn(
-                    "flex-1 py-3 rounded-xl text-sm font-semibold border transition-all duration-200",
+                    "py-4 rounded-2xl text-sm font-bold border transition-all duration-200 active:scale-95",
                     form.direction === dir
                       ? dir === "long"
-                        ? "bg-emerald-400/20 border-emerald-400/50 text-emerald-400"
-                        : "bg-red-400/20 border-red-400/50 text-red-400"
-                      : "bg-secondary/50 border-border text-muted-foreground"
-                  )}
-                >
+                        ? "bg-emerald-400/20 border-emerald-400/40 text-emerald-400"
+                        : "bg-red-400/20 border-red-400/40 text-red-400"
+                      : "bg-secondary/40 border-border/40 text-muted-foreground"
+                  )}>
                   {dir === "long" ? "▲ Long" : "▼ Short"}
                 </button>
               ))}
@@ -188,167 +140,156 @@ export default function AddTrade() {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Entry Date" required>
               <input data-testid="input-entry-date" type="date" value={form.entryDate}
-                onChange={e => set("entryDate", e.target.value)} className={inputCls} required />
+                onChange={e => set("entryDate", e.target.value)} className="field-input" required />
             </Field>
             <Field label="Exit Date">
               <input data-testid="input-exit-date" type="date" value={form.exitDate}
-                onChange={e => set("exitDate", e.target.value)} className={inputCls} />
+                onChange={e => set("exitDate", e.target.value)} className="field-input" />
             </Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Entry $" required>
-              <input data-testid="input-entry-price" type="number" step="any" placeholder="0.00"
-                value={form.entryPrice} onChange={e => set("entryPrice", e.target.value)} className={inputCls} required />
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "entryPrice", label: "Entry $", placeholder: "0.00", required: true },
+              { key: "exitPrice",  label: "Exit $",  placeholder: "0.00", required: false },
+              { key: "quantity",   label: "Qty",     placeholder: "0",    required: true },
+            ].map(({ key, label, placeholder, required }) => (
+              <Field key={key} label={label} required={required}>
+                <input data-testid={`input-${key}`} type="number" step="any" placeholder={placeholder}
+                  value={(form as Record<string,unknown>)[key] as string}
+                  onChange={e => set(key, e.target.value)}
+                  className="field-input" required={required} />
+              </Field>
+            ))}
+          </div>
+        </Section>
+
+        {/* Setup & Account */}
+        <Section title="Setup & Account">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Account">
+              <div className="relative">
+                <select data-testid="select-account" value={form.account} onChange={e => set("account", e.target.value)}
+                  className={cn("field-input appearance-none pr-8")}>
+                  {ACCOUNTS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              </div>
             </Field>
-            <Field label="Exit $">
-              <input data-testid="input-exit-price" type="number" step="any" placeholder="0.00"
-                value={form.exitPrice} onChange={e => set("exitPrice", e.target.value)} className={inputCls} />
-            </Field>
-            <Field label="Qty" required>
-              <input data-testid="input-quantity" type="number" step="any" placeholder="0"
-                value={form.quantity} onChange={e => set("quantity", e.target.value)} className={inputCls} required />
+            <Field label="Setup">
+              <div className="relative">
+                <select data-testid="select-setup" value={form.setup} onChange={e => set("setup", e.target.value)}
+                  className={cn("field-input appearance-none pr-8")}>
+                  <option value="">Select…</option>
+                  {SETUPS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              </div>
             </Field>
           </div>
-        </div>
-
-        {/* Account & Setup */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40 space-y-4">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">Setup & Account</p>
-
-          <Field label="Account">
-            <div className="relative">
-              <select data-testid="select-account" value={form.account} onChange={e => set("account", e.target.value)}
-                className={cn(inputCls, "appearance-none pr-8")}>
-                {ACCOUNTS.map(a => <option key={a} value={a}>{a}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          </Field>
-
-          <Field label="Setup">
-            <div className="relative">
-              <select data-testid="select-setup" value={form.setup} onChange={e => set("setup", e.target.value)}
-                className={cn(inputCls, "appearance-none pr-8")}>
-                <option value="">Select setup...</option>
-                {SETUPS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          </Field>
-        </div>
+        </Section>
 
         {/* Psychology */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40 space-y-4">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">Psychology</p>
-
-          <Field label="Emotion Before">
+        <Section title="Psychology">
+          <Field label="Emotion Before Trade">
             <div className="grid grid-cols-3 gap-2">
               {EMOTIONS.map(em => (
                 <button key={em.value} type="button" data-testid={`btn-emotion-${em.value}`}
                   onClick={() => set("emotion", em.value)}
                   className={cn(
-                    "py-2.5 rounded-xl text-xs font-medium border transition-all duration-200 flex flex-col items-center gap-1",
+                    "py-3 rounded-2xl text-xs font-semibold border flex flex-col items-center gap-1 transition-all duration-200 active:scale-95",
                     form.emotion === em.value
-                      ? "bg-primary/20 border-primary/50 text-primary"
-                      : "bg-secondary/30 border-border/50 text-muted-foreground"
+                      ? "bg-primary/20 border-primary/40 text-primary"
+                      : "bg-secondary/30 border-border/40 text-muted-foreground"
                   )}>
-                  <span className="text-base">{em.emoji}</span>
+                  <span className="text-lg leading-none">{em.emoji}</span>
                   {em.label}
                 </button>
               ))}
             </div>
           </Field>
 
-          <Field label="Emotion After">
-            <div className="grid grid-cols-3 gap-2">
+          <Field label="Emotion After Trade">
+            <div className="grid grid-cols-3 gap-2" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
               {EMOTIONS_AFTER.map(em => (
                 <button key={em.value} type="button" data-testid={`btn-emotion-after-${em.value}`}
                   onClick={() => set("emotionAfter", em.value)}
                   className={cn(
-                    "py-2.5 rounded-xl text-xs font-medium border transition-all duration-200 flex flex-col items-center gap-1",
+                    "py-3 rounded-2xl text-xs font-semibold border flex flex-col items-center gap-1 transition-all duration-200 active:scale-95",
                     form.emotionAfter === em.value
-                      ? "bg-primary/20 border-primary/50 text-primary"
-                      : "bg-secondary/30 border-border/50 text-muted-foreground"
+                      ? "bg-primary/20 border-primary/40 text-primary"
+                      : "bg-secondary/30 border-border/40 text-muted-foreground"
                   )}>
-                  <span className="text-base">{em.emoji}</span>
-                  {em.label}
+                  <span className="text-lg leading-none">{em.emoji}</span>
+                  <span className="text-center leading-tight">{em.label}</span>
                 </button>
               ))}
             </div>
           </Field>
-        </div>
+        </Section>
 
-        {/* Notes & Mistakes */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40 space-y-4">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">Notes & Analysis</p>
-
+        {/* Notes */}
+        <Section title="Notes & Analysis">
           <Field label="Trade Notes">
-            <textarea data-testid="input-notes" placeholder="What did you observe? Why did you take this trade?"
+            <textarea data-testid="input-notes"
+              placeholder="Why did you take this trade? What did you see?"
               value={form.notes} onChange={e => set("notes", e.target.value)}
-              rows={3} className={cn(inputCls, "resize-none")} />
+              rows={3} className="field-input resize-none" />
           </Field>
-
           <Field label="Mistakes / Lessons">
-            <textarea data-testid="input-mistakes" placeholder="Any mistakes? What would you do differently?"
+            <textarea data-testid="input-mistakes"
+              placeholder="Any errors? What would you do differently?"
               value={form.mistakes} onChange={e => set("mistakes", e.target.value)}
-              rows={2} className={cn(inputCls, "resize-none")} />
+              rows={2} className="field-input resize-none" />
           </Field>
-
-          {/* Tags */}
           <Field label="Tags">
             <div className="flex flex-wrap gap-2">
-              {COMMON_TAGS.map(tag => (
-                <button key={tag} type="button"
-                  onClick={() => toggleTag(tag)}
+              {TAGS.map(tag => (
+                <button key={tag} type="button" onClick={() => toggleTag(tag)}
                   className={cn(
-                    "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200",
+                    "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 tap-small",
                     form.tags.includes(tag)
-                      ? "bg-primary/20 border-primary/50 text-primary"
-                      : "bg-secondary/30 border-border/50 text-muted-foreground"
+                      ? "bg-primary/20 border-primary/40 text-primary"
+                      : "bg-secondary/30 border-border/40 text-muted-foreground"
                   )}>
-                  <Tag size={10} />
+                  <Tag size={9} />
                   {tag}
-                  {form.tags.includes(tag) && <Check size={10} />}
+                  {form.tags.includes(tag) && <Check size={9} />}
                 </button>
               ))}
             </div>
           </Field>
-        </div>
+        </Section>
 
-        {/* Screenshot Upload */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40 space-y-3">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">Chart Screenshot</p>
-
-          {screenshotPreview ? (
-            <div className="relative">
-              <img src={screenshotPreview} alt="chart" className="w-full rounded-xl object-cover max-h-48" />
-              <button type="button" onClick={removeScreenshot}
-                className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm border border-border rounded-full p-1 hover:bg-destructive/20 transition-colors">
-                <X size={14} className="text-foreground" />
+        {/* Screenshot */}
+        <Section title="Chart Screenshot">
+          {preview ? (
+            <div className="relative rounded-2xl overflow-hidden">
+              <img src={preview} alt="chart" className="w-full object-cover max-h-56 rounded-2xl" />
+              <button type="button"
+                onClick={() => { set("screenshotFile", null); setPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                className="absolute top-2 right-2 w-8 h-8 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center tap-small">
+                <X size={14} className="text-white" />
               </button>
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-border/60 rounded-xl p-6 flex flex-col items-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200">
-              <Upload size={22} className="text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Tap to upload chart screenshot</span>
-              <span className="text-xs text-muted-foreground/60">JPG, PNG, WebP</span>
+              className="w-full border-2 border-dashed border-border/40 rounded-2xl py-8 flex flex-col items-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 active:scale-[0.98]">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Upload size={18} className="text-primary" />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">Tap to upload screenshot</span>
+              <span className="text-xs text-muted-foreground/50">JPG · PNG · WebP</span>
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" data-testid="input-screenshot" />
-        </div>
+        </Section>
 
-        <button
-          data-testid="btn-submit-trade"
-          type="submit"
-          disabled={loading}
-          className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-2xl hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-50 shadow-lg text-sm"
-        >
-          {loading ? "Saving Trade..." : "Save Trade"}
+        <button data-testid="btn-submit-trade" type="submit" disabled={loading} className="btn-primary">
+          {loading ? "Saving…" : "Save Trade"}
         </button>
 
-        <div className="h-2" />
+        <div className="h-4" />
       </form>
     </div>
   );

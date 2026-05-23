@@ -2,88 +2,64 @@ import { useState, useMemo } from "react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useGoals, Goals as GoalsType } from "@/contexts/GoalsContext";
 import { formatCurrency, getPnlColor } from "@/lib/utils";
-import {
-  Target, Flame, Trophy, TrendingUp, Shield,
-  Edit3, Check, X, Zap, Star, BarChart3
-} from "lucide-react";
+import { Target, Flame, Trophy, TrendingUp, Shield, Edit3, Check, X, Zap, Star, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function getWeekStart() {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const mon = new Date(now.setDate(diff));
-  return mon.toISOString().split("T")[0];
+  const d = new Date(), day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff)).toISOString().split("T")[0];
 }
-
 function getMonthStart() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-01`;
 }
 
-function ProgressRing({ value, max, size = 64, color }: {
-  value: number; max: number; size?: number; color: string;
-}) {
-  const pct = Math.min(100, max > 0 ? (value / max) * 100 : 0);
-  const r = (size - 8) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
+function ProgressRing({ pct, size = 64, color }: { pct: number; size?: number; color: string }) {
+  const r = (size-8)/2, circ = 2*Math.PI*r, offset = circ - (Math.min(100,pct)/100)*circ;
   return (
     <svg width={size} height={size} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgba(255,255,255,0.06)" strokeWidth={6} />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth={6}
-        strokeDasharray={circ} strokeDashoffset={offset}
-        strokeLinecap="round"
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={7} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={7}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         style={{ transition: "stroke-dashoffset 1s ease" }} />
     </svg>
   );
 }
 
-function GoalCard({
-  label, current, target, unit = "", color, icon: Icon, format
-}: {
-  label: string; current: number; target: number; unit?: string;
-  color: string; icon: React.ElementType; format?: (v: number) => string;
+function GoalCard({ label, current, target, color, icon: Icon, format }: {
+  label: string; current: number; target: number; color: string; icon: React.ElementType; format?: (v:number)=>string;
 }) {
-  const pct = Math.min(100, target > 0 ? (current / target) * 100 : 0);
-  const fmt = format ?? ((v: number) => `${v.toFixed(1)}${unit}`);
-  const achieved = current >= target && target > 0;
-
+  const pct = Math.min(100, target > 0 ? (current/target)*100 : 0);
+  const fmt = format ?? ((v: number) => `${v.toFixed(1)}`);
+  const done = current >= target && target > 0;
   return (
-    <div className={cn(
-      "glass-card rounded-2xl p-4 border transition-all duration-300",
-      achieved ? "border-yellow-400/40 bg-yellow-400/5" : "border-border/40"
-    )}>
+    <div className={cn("glass-card rounded-3xl p-4 border transition-all card-hover", done ? "border-yellow-400/30 bg-yellow-400/5" : "border-white/[0.06]")}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-xl" style={{ background: `${color}20` }}>
-            <Icon size={14} style={{ color }} />
+            <Icon size={13} style={{ color }} />
           </div>
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</span>
         </div>
-        {achieved && (
-          <div className="flex items-center gap-1 bg-yellow-400/15 border border-yellow-400/30 rounded-full px-2 py-0.5">
-            <Trophy size={10} className="text-yellow-400" />
-            <span className="text-[10px] font-bold text-yellow-400">Done!</span>
+        {done && (
+          <div className="flex items-center gap-1 bg-yellow-400/15 border border-yellow-400/25 rounded-full px-2 py-0.5">
+            <Trophy size={9} className="text-yellow-400" />
+            <span className="text-[9px] font-bold text-yellow-400">Done!</span>
           </div>
         )}
       </div>
-
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
-          <ProgressRing value={current} max={target} size={64} color={color} />
+          <ProgressRing pct={pct} size={68} color={color} />
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-xs font-bold text-foreground">{pct.toFixed(0)}%</span>
           </div>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xl font-bold font-serif" style={{ color }}>{fmt(current)}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">of {fmt(target)} target</p>
+          <p className="text-xs text-muted-foreground mt-0.5">of {fmt(target)}</p>
           <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${pct}%`, background: color }} />
+            <div className="h-full rounded-full transition-all duration-1000" style={{ width:`${pct}%`, background: color }} />
           </div>
         </div>
       </div>
@@ -91,88 +67,50 @@ function GoalCard({
   );
 }
 
-function StreakCard({ streak, label, icon: Icon, color }: {
-  streak: number; label: string; icon: React.ElementType; color: string;
-}) {
-  return (
-    <div className="glass-card rounded-2xl p-4 border border-border/40 flex flex-col items-center text-center">
-      <div className="p-2 rounded-xl mb-2" style={{ background: `${color}20` }}>
-        <Icon size={18} style={{ color }} />
-      </div>
-      <p className="text-3xl font-bold font-serif" style={{ color }}>{streak}</p>
-      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{label}</p>
-    </div>
-  );
-}
-
-function EditGoalsSheet({ goals, onSave, onClose }: {
-  goals: GoalsType; onSave: (g: GoalsType) => Promise<void>; onClose: () => void;
-}) {
+function EditSheet({ goals, onSave, onClose }: { goals: GoalsType; onSave: (g: GoalsType) => Promise<void>; onClose: () => void }) {
   const [form, setForm] = useState<GoalsType>({ ...goals });
   const [saving, setSaving] = useState(false);
+  const set = (k: keyof GoalsType, v: string) => setForm(f => ({ ...f, [k]: parseFloat(v) || 0 }));
 
-  const set = (k: keyof GoalsType, v: string) =>
-    setForm(f => ({ ...f, [k]: parseFloat(v) || 0 }));
-
-  const handleSave = async () => {
-    setSaving(true);
-    await onSave(form);
-    setSaving(false);
-    onClose();
-  };
-
-  const fields: { key: keyof GoalsType; label: string; prefix?: string; suffix?: string; step: string }[] = [
-    { key: "weeklyPnl", label: "Weekly P&L Target", prefix: "$", step: "50" },
-    { key: "monthlyPnl", label: "Monthly P&L Target", prefix: "$", step: "100" },
-    { key: "winRateTarget", label: "Win Rate Target", suffix: "%", step: "1" },
-    { key: "dailyTradeLimit", label: "Max Trades Per Day", step: "1" },
-    { key: "minRR", label: "Minimum Risk/Reward", suffix: "R", step: "0.1" },
+  const fields: { key: keyof GoalsType; label: string; prefix?: string; suffix?: string }[] = [
+    { key: "weeklyPnl",       label: "Weekly P&L Target",    prefix: "$" },
+    { key: "monthlyPnl",      label: "Monthly P&L Target",   prefix: "$" },
+    { key: "winRateTarget",   label: "Win Rate Target",       suffix: "%" },
+    { key: "dailyTradeLimit", label: "Max Trades / Day"                   },
+    { key: "minRR",           label: "Min Risk/Reward",       suffix: "R" },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-card border border-border rounded-t-3xl p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-t-3xl shadow-2xl"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom,0px), 16px)" }}>
+        <div className="px-5 pt-4 pb-2 flex items-center justify-between">
           <h3 className="text-base font-bold font-serif text-foreground">Set Your Goals</h3>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted transition-colors">
-            <X size={16} className="text-muted-foreground" />
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center tap-small">
+            <X size={15} className="text-muted-foreground" />
           </button>
         </div>
-
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {fields.map(({ key, label, prefix, suffix, step }) => (
-            <div key={key}>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                {label}
-              </label>
+        <div className="px-5 pb-4 flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+          {fields.map(({ key, label, prefix, suffix }) => (
+            <div key={key as string}>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">{label}</label>
               <div className="relative">
-                {prefix && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{prefix}</span>
-                )}
-                <input
-                  type="number" step={step} value={form[key] as number}
+                {prefix && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{prefix}</span>}
+                <input type="number" step="any" value={form[key] as number}
                   onChange={e => set(key, e.target.value)}
-                  className={cn(
-                    "w-full bg-input/50 border border-border rounded-xl py-3 text-sm text-foreground",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all",
-                    prefix ? "pl-7 pr-4" : suffix ? "pl-4 pr-7" : "px-4"
-                  )}
-                />
-                {suffix && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{suffix}</span>
-                )}
+                  className={cn("field-input", prefix ? "pl-8" : suffix ? "pr-8" : "")} />
+                {suffix && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{suffix}</span>}
               </div>
             </div>
           ))}
         </div>
-
-        <button
-          onClick={handleSave} disabled={saving}
-          className="mt-5 w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-2xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save Goals"}
-        </button>
+        <div className="px-5 pt-2">
+          <button onClick={async () => { setSaving(true); await onSave(form); setSaving(false); onClose(); }}
+            disabled={saving} className="btn-primary">
+            {saving ? "Saving…" : "Save Goals"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -183,76 +121,44 @@ export default function Goals() {
   const { goals, loading, saveGoals } = useGoals();
   const [editing, setEditing] = useState(false);
 
-  const weekStart = getWeekStart();
+  const weekStart  = getWeekStart();
   const monthStart = getMonthStart();
 
   const stats = useMemo(() => {
     const closed = trades.filter(t => t.status === "closed" && t.pnl != null);
-
-    const weekTrades = closed.filter(t => t.entryDate >= weekStart);
-    const monthTrades = closed.filter(t => t.entryDate >= monthStart);
-
-    const weekPnl = weekTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const monthPnl = monthTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
-
-    const wins = closed.filter(t => (t.pnl ?? 0) > 0).length;
-    const winRate = closed.length ? (wins / closed.length) * 100 : 0;
-
-    const avgRR = (() => {
-      const withRR = closed.filter(t => t.pnl != null && t.entryPrice > 0 && t.exitPrice != null);
-      if (!withRR.length) return 0;
-      const winners = withRR.filter(t => (t.pnl ?? 0) > 0);
-      const losers = withRR.filter(t => (t.pnl ?? 0) < 0);
-      const avgW = winners.length ? winners.reduce((s, t) => s + (t.pnl ?? 0), 0) / winners.length : 0;
-      const avgL = losers.length ? Math.abs(losers.reduce((s, t) => s + (t.pnl ?? 0), 0) / losers.length) : 1;
-      return avgL > 0 ? avgW / avgL : 0;
+    const weekT  = closed.filter(t => t.entryDate >= weekStart);
+    const monthT = closed.filter(t => t.entryDate >= monthStart);
+    const weekPnl  = weekT.reduce((s,t)  => s+(t.pnl??0), 0);
+    const monthPnl = monthT.reduce((s,t) => s+(t.pnl??0), 0);
+    const wins     = closed.filter(t => (t.pnl??0) > 0).length;
+    const winRate  = closed.length ? (wins/closed.length)*100 : 0;
+    const avgRR    = (() => {
+      const w = closed.filter(t=>(t.pnl??0)>0), l = closed.filter(t=>(t.pnl??0)<0);
+      const aw = w.length ? w.reduce((s,t)=>s+(t.pnl??0),0)/w.length : 0;
+      const al = l.length ? Math.abs(l.reduce((s,t)=>s+(t.pnl??0),0)/l.length) : 1;
+      return al > 0 ? aw/al : 0;
     })();
-
-    // Current win streak
-    let winStreak = 0;
-    for (const t of closed) {
-      if ((t.pnl ?? 0) > 0) winStreak++;
-      else break;
-    }
-
-    // Best win streak
-    let bestStreak = 0, curStreak = 0;
-    for (const t of [...closed].reverse()) {
-      if ((t.pnl ?? 0) > 0) { curStreak++; bestStreak = Math.max(bestStreak, curStreak); }
-      else curStreak = 0;
-    }
-
-    // Profitable days streak
-    const dayPnl: Record<string, number> = {};
-    for (const t of closed) {
-      dayPnl[t.entryDate] = (dayPnl[t.entryDate] ?? 0) + (t.pnl ?? 0);
-    }
-    const sortedDays = Object.entries(dayPnl).sort(([a], [b]) => b.localeCompare(a));
+    let winStreak = 0; for (const t of closed){ if((t.pnl??0)>0) winStreak++; else break; }
+    let bestStreak = 0, cur = 0;
+    for (const t of [...closed].reverse()){ if((t.pnl??0)>0){cur++;bestStreak=Math.max(bestStreak,cur);}else cur=0; }
+    const dayPnl: Record<string,number> = {};
+    for (const t of closed) dayPnl[t.entryDate] = (dayPnl[t.entryDate]??0)+(t.pnl??0);
     let profitDayStreak = 0;
-    for (const [, pnl] of sortedDays) {
-      if (pnl > 0) profitDayStreak++;
-      else break;
-    }
-
-    // Weekly trades count for limit check
-    const weekTradeCount = weekTrades.length;
-
-    return { weekPnl, monthPnl, winRate, avgRR, winStreak, bestStreak, profitDayStreak, weekTradeCount, total: closed.length };
+    for (const [,v] of Object.entries(dayPnl).sort(([a],[b])=>b.localeCompare(a))){ if(v>0) profitDayStreak++; else break; }
+    const weekWinRate = weekT.length ? (weekT.filter(t=>(t.pnl??0)>0).length/weekT.length)*100 : 0;
+    return { weekPnl, monthPnl, winRate, avgRR, winStreak, bestStreak, profitDayStreak, weekCount: weekT.length, weekWinRate, total: closed.length };
   }, [trades, weekStart, monthStart]);
 
-  const achievements = useMemo(() => {
-    const list: { label: string; desc: string; earned: boolean; icon: React.ElementType }[] = [
-      { label: "First Trade", desc: "Log your first trade", earned: stats.total >= 1, icon: Star },
-      { label: "10 Trades", desc: "Log 10 closed trades", earned: stats.total >= 10, icon: BarChart3 },
-      { label: "50 Trades", desc: "Reach 50 closed trades", earned: stats.total >= 50, icon: BarChart3 },
-      { label: "Win Streak 3", desc: "Win 3 trades in a row", earned: stats.bestStreak >= 3, icon: Flame },
-      { label: "Win Streak 5", desc: "Win 5 trades in a row", earned: stats.bestStreak >= 5, icon: Flame },
-      { label: "Consistent", desc: "3 profitable days in a row", earned: stats.profitDayStreak >= 3, icon: TrendingUp },
-      { label: "Hit Monthly Goal", desc: "Reach monthly P&L target", earned: stats.monthPnl >= goals.monthlyPnl && goals.monthlyPnl > 0, icon: Trophy },
-      { label: "Risk Master", desc: "Maintain 2:1+ R/R ratio", earned: stats.avgRR >= 2, icon: Shield },
-    ];
-    return list;
-  }, [stats, goals]);
+  const achievements = useMemo(() => [
+    { label: "First Trade",    desc: "Log your first trade",          earned: stats.total >= 1,  icon: Star       },
+    { label: "10 Trades",      desc: "Log 10 closed trades",          earned: stats.total >= 10, icon: BarChart3  },
+    { label: "50 Trades",      desc: "Reach 50 closed trades",        earned: stats.total >= 50, icon: BarChart3  },
+    { label: "Win Streak 3",   desc: "3 wins in a row",               earned: stats.bestStreak >= 3, icon: Flame  },
+    { label: "Win Streak 5",   desc: "5 consecutive wins",            earned: stats.bestStreak >= 5, icon: Flame  },
+    { label: "Consistent",     desc: "3 profitable days in a row",    earned: stats.profitDayStreak >= 3, icon: TrendingUp },
+    { label: "Monthly Goal",   desc: "Hit your monthly P&L target",   earned: stats.monthPnl >= goals.monthlyPnl && goals.monthlyPnl > 0, icon: Trophy },
+    { label: "Risk Master",    desc: "Maintain 2:1+ R/R",             earned: stats.avgRR >= 2,  icon: Shield     },
+  ], [stats, goals]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -262,165 +168,98 @@ export default function Goals() {
 
   return (
     <>
-      <div className="px-4 pt-5 pb-4 space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col">
+        <header className="page-header px-5 py-3.5 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Target size={18} className="text-primary" />
-              <h1 className="text-xl font-bold font-serif text-foreground">Goals & Streaks</h1>
+              <Target size={17} className="text-primary" />
+              <h1 className="text-lg font-bold font-serif text-foreground">Goals & Streaks</h1>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">Track your targets and consistency</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Track your targets and consistency</p>
           </div>
-          <button
-            data-testid="btn-edit-goals"
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 bg-primary/15 border border-primary/30 text-primary text-xs font-semibold px-3 py-2 rounded-xl hover:bg-primary/25 active:scale-95 transition-all"
-          >
-            <Edit3 size={12} />
-            Edit Goals
+          <button data-testid="btn-edit-goals" onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 bg-primary/15 border border-primary/25 text-primary text-xs font-bold px-3 py-2 rounded-xl hover:bg-primary/25 active:scale-90 transition-all tap-small">
+            <Edit3 size={11} /> Edit
           </button>
-        </div>
+        </header>
 
-        {/* Streaks Row */}
-        <div className="grid grid-cols-3 gap-2 stagger-children">
-          <StreakCard streak={stats.winStreak} label="Win Streak" icon={Flame} color="#f6c948" />
-          <StreakCard streak={stats.profitDayStreak} label="Profit Days" icon={TrendingUp} color="#10b981" />
-          <StreakCard streak={stats.bestStreak} label="Best Streak" icon={Trophy} color="#a855f7" />
-        </div>
+        <div className="px-4 pt-4 pb-6 flex flex-col gap-4">
+          {/* Streak cards */}
+          <div className="grid grid-cols-3 gap-2 stagger">
+            {[
+              { streak: stats.winStreak,      label: "Win\nStreak",    icon: Flame,      color: "#f6c948" },
+              { streak: stats.profitDayStreak, label: "Profit\nDays",  icon: TrendingUp, color: "#10b981" },
+              { streak: stats.bestStreak,     label: "Best\nStreak",   icon: Trophy,     color: "#a855f7" },
+            ].map(({ streak, label, icon: Icon, color }) => (
+              <div key={label} className="glass-card rounded-2xl p-3.5 border border-white/[0.06] flex flex-col items-center text-center">
+                <div className="p-2 rounded-xl mb-1.5" style={{ background: `${color}20` }}>
+                  <Icon size={16} style={{ color }} />
+                </div>
+                <p className="text-3xl font-bold font-serif leading-none" style={{ color }}>{streak}</p>
+                <p className="text-[9px] text-muted-foreground mt-1.5 leading-tight whitespace-pre-line font-medium">{label}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* Goals progress */}
-        <div className="space-y-3 stagger-children">
-          <GoalCard
-            label="Weekly P&L"
-            current={Math.max(0, stats.weekPnl)}
-            target={goals.weeklyPnl}
-            icon={Zap}
-            color="#f6c948"
-            format={formatCurrency}
-          />
-          <GoalCard
-            label="Monthly P&L"
-            current={Math.max(0, stats.monthPnl)}
-            target={goals.monthlyPnl}
-            icon={TrendingUp}
-            color="#10b981"
-            format={formatCurrency}
-          />
-          <GoalCard
-            label="Win Rate"
-            current={stats.winRate}
-            target={goals.winRateTarget}
-            icon={Target}
-            color="#3b82f6"
-            unit="%"
-          />
-          <GoalCard
-            label="Avg Risk/Reward"
-            current={stats.avgRR}
-            target={goals.minRR}
-            icon={Shield}
-            color="#a855f7"
-            unit="R"
-          />
-        </div>
+          {/* Goal progress */}
+          <div className="flex flex-col gap-3 stagger">
+            <GoalCard label="Weekly P&L"   current={Math.max(0,stats.weekPnl)}  target={goals.weeklyPnl}     icon={Zap}      color="#f6c948" format={formatCurrency} />
+            <GoalCard label="Monthly P&L"  current={Math.max(0,stats.monthPnl)} target={goals.monthlyPnl}    icon={TrendingUp} color="#10b981" format={formatCurrency} />
+            <GoalCard label="Win Rate"      current={stats.winRate}              target={goals.winRateTarget} icon={Target}   color="#3b82f6" format={v=>`${v.toFixed(1)}%`} />
+            <GoalCard label="Risk/Reward"   current={stats.avgRR}                target={goals.minRR}         icon={Shield}   color="#a855f7" format={v=>`${v.toFixed(2)}R`} />
+          </div>
 
-        {/* Daily trade discipline */}
-        <div className="glass-card rounded-2xl p-4 border border-border/40">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 size={14} className="text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">This Week's Discipline</span>
+          {/* Weekly discipline */}
+          <div className="glass-card rounded-3xl p-5 border border-white/[0.06]">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">This Week's Discipline</p>
+            <div className="flex flex-col divide-y divide-border/30">
+              {[
+                { label: "Week P&L",     ok: stats.weekPnl >= 0, display: formatCurrency(stats.weekPnl), color: getPnlColor(stats.weekPnl) },
+                { label: "Trades taken", ok: stats.weekCount <= goals.dailyTradeLimit*5, display: `${stats.weekCount}/${goals.dailyTradeLimit*5} limit`, color: stats.weekCount <= goals.dailyTradeLimit*5 ? "text-emerald-400" : "text-red-400" },
+                { label: "Week Win Rate", ok: stats.weekWinRate >= goals.winRateTarget, display: `${stats.weekWinRate.toFixed(1)}% (goal: ${goals.winRateTarget}%)`, color: stats.weekWinRate >= goals.winRateTarget ? "text-emerald-400" : "text-yellow-400" },
+              ].map(({ label, ok, display, color }) => (
+                <div key={label} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${ok ? "bg-emerald-400/15" : "bg-red-400/15"}`}>
+                      {ok ? <Check size={12} className="text-emerald-400" /> : <X size={12} className="text-red-400" />}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                  </div>
+                  <span className={`text-xs font-bold ${color}`}>{display}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="space-y-2">
-            {[
-              {
-                label: "Week P&L",
-                value: stats.weekPnl,
-                ok: stats.weekPnl >= 0,
-                display: formatCurrency(stats.weekPnl),
-                color: stats.weekPnl >= 0 ? "#10b981" : "#ef4444"
-              },
-              {
-                label: "Trades taken",
-                value: stats.weekTradeCount,
-                ok: stats.weekTradeCount <= goals.dailyTradeLimit * 5,
-                display: `${stats.weekTradeCount} / ${goals.dailyTradeLimit * 5} limit`,
-                color: stats.weekTradeCount <= goals.dailyTradeLimit * 5 ? "#10b981" : "#ef4444"
-              },
-              {
-                label: "Win Rate this week",
-                value: (() => {
-                  const wt = trades.filter(t => t.status === "closed" && t.pnl != null && t.entryDate >= weekStart);
-                  return wt.length ? (wt.filter(t => (t.pnl ?? 0) > 0).length / wt.length) * 100 : 0;
-                })(),
-                ok: (() => {
-                  const wt = trades.filter(t => t.status === "closed" && t.pnl != null && t.entryDate >= weekStart);
-                  const wr = wt.length ? (wt.filter(t => (t.pnl ?? 0) > 0).length / wt.length) * 100 : 0;
-                  return wr >= goals.winRateTarget;
-                })(),
-                display: (() => {
-                  const wt = trades.filter(t => t.status === "closed" && t.pnl != null && t.entryDate >= weekStart);
-                  const wr = wt.length ? (wt.filter(t => (t.pnl ?? 0) > 0).length / wt.length) * 100 : 0;
-                  return `${wr.toFixed(1)}% (target: ${goals.winRateTarget}%)`;
-                })(),
-                color: (() => {
-                  const wt = trades.filter(t => t.status === "closed" && t.pnl != null && t.entryDate >= weekStart);
-                  const wr = wt.length ? (wt.filter(t => (t.pnl ?? 0) > 0).length / wt.length) * 100 : 0;
-                  return wr >= goals.winRateTarget ? "#10b981" : "#f6c948";
-                })(),
-              },
-            ].map(({ label, ok, display, color }) => (
-              <div key={label} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${ok ? "bg-emerald-400/15" : "bg-red-400/15"}`}>
-                    {ok ? <Check size={11} className="text-emerald-400" /> : <X size={11} className="text-red-400" />}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{label}</span>
-                </div>
-                <span className="text-xs font-bold" style={{ color }}>{display}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Achievements */}
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Achievements</p>
-          <div className="grid grid-cols-2 gap-2 stagger-children">
-            {achievements.map(({ label, desc, earned, icon: Icon }) => (
-              <div key={label} className={cn(
-                "glass-card rounded-2xl p-3.5 border transition-all",
-                earned
-                  ? "border-yellow-400/30 bg-yellow-400/5"
-                  : "border-border/30 opacity-50"
-              )}>
-                <div className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center mb-2",
-                  earned ? "bg-yellow-400/15" : "bg-muted"
+          {/* Achievements */}
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Achievements</p>
+            <div className="grid grid-cols-2 gap-2.5 stagger">
+              {achievements.map(({ label, desc, earned, icon: Icon }) => (
+                <div key={label} className={cn(
+                  "glass-card rounded-2xl p-4 border transition-all card-hover",
+                  earned ? "border-yellow-400/25 bg-yellow-400/5" : "border-white/[0.04] opacity-50"
                 )}>
-                  <Icon size={16} className={earned ? "text-yellow-400" : "text-muted-foreground"} />
-                </div>
-                <p className={cn("text-xs font-bold", earned ? "text-foreground" : "text-muted-foreground")}>{label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{desc}</p>
-                {earned && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <Trophy size={9} className="text-yellow-400" />
-                    <span className="text-[9px] font-bold text-yellow-400">Earned</span>
+                  <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-2.5", earned ? "bg-yellow-400/15" : "bg-muted")}>
+                    <Icon size={16} className={earned ? "text-yellow-400" : "text-muted-foreground"} />
                   </div>
-                )}
-              </div>
-            ))}
+                  <p className={cn("text-xs font-bold leading-tight", earned ? "text-foreground" : "text-muted-foreground")}>{label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{desc}</p>
+                  {earned && (
+                    <div className="flex items-center gap-1 mt-2">
+                      <Trophy size={9} className="text-yellow-400" />
+                      <span className="text-[9px] font-bold text-yellow-400">Earned</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
+          <div className="h-4" />
         </div>
-
-        <div className="h-2" />
       </div>
 
-      {editing && (
-        <EditGoalsSheet goals={goals} onSave={saveGoals} onClose={() => setEditing(false)} />
-      )}
+      {editing && <EditSheet goals={goals} onSave={saveGoals} onClose={() => setEditing(false)} />}
     </>
   );
 }
