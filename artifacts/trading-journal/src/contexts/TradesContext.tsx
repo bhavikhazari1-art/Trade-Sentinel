@@ -7,7 +7,6 @@ import {
   doc,
   query,
   where,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -61,6 +60,7 @@ export interface TradeInput {
 interface TradesContextType {
   trades: Trade[];
   loading: boolean;
+  error: string | null;
   addTrade: (input: TradeInput) => Promise<void>;
   updateTrade: (id: string, input: Partial<TradeInput>) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
@@ -70,31 +70,83 @@ const TradesContext = createContext<TradesContextType | null>(null);
 
 function calcPnl(direction: string, entry: number, exit: number, qty: number) {
   const diff = direction === "long" ? exit - entry : entry - exit;
-  const pnl = diff * qty;
-  const pnlPercent = (diff / entry) * 100;
-  return { pnl, pnlPercent };
+  return { pnl: diff * qty, pnlPercent: (diff / entry) * 100 };
+}
+
+function sortTrades(trades: Trade[]): Trade[] {
+  return [...trades].sort((a, b) => {
+    const aMs = a.createdAt?.toMillis() ?? new Date(a.entryDate).getTime();
+    const bMs = b.createdAt?.toMillis() ?? new Date(b.entryDate).getTime();
+    return bMs - aMs;
+  });
 }
 
 export function TradesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { setTrades([]); setLoading(false); return; }
+    // Not logged in — reset immediately
+    if (!user) {
+      setTrades([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    // ── Safety timeout: never spin forever ─────────────────
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("Loading timed out. Check your connection and Firestore rules.");
+    }, 12_000);
+
+    // ── Query WITHOUT orderBy → no composite index needed ──
+    // We sort client-side instead so the query works on a fresh project.
     const q = query(
       collection(db, "trades"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.uid)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade));
-      setTrades(data);
-      setLoading(false);
-    });
-    return unsub;
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        clearTimeout(timeout);
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade));
+        setTrades(sortTrades(data));
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        // ── Error handler — critical: without this loading stays true ──
+        clearTimeout(timeout);
+        console.error("Firestore trades error:", err);
+
+        // Friendly messages for common errors
+        let msg = err.message ?? "Failed to load trades.";
+        if (err.code === "permission-denied") {
+          msg = "Firestore permission denied. Check your security rules.";
+        } else if (err.code === "failed-precondition") {
+          msg = "Firestore index missing. Open the console link to create it.";
+        } else if (err.code === "unavailable") {
+          msg = "Firebase is offline. Check your internet connection.";
+        }
+        setError(msg);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      clearTimeout(timeout);
+      unsub();
+    };
   }, [user]);
 
+  // ── Screenshot upload ───────────────────────────────────
   const uploadScreenshot = async (file: File, userId: string): Promise<string> => {
     const path = `screenshots/${userId}/${Date.now()}_${file.name}`;
     const storageRef = ref(storage, path);
@@ -102,6 +154,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     return getDownloadURL(storageRef);
   };
 
+  // ── Add ─────────────────────────────────────────────────
   const addTrade = useCallback(async (input: TradeInput) => {
     if (!user) return;
     let screenshotUrl: string | undefined;
@@ -137,6 +190,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     });
   }, [user]);
 
+  // ── Update ───────────────────────────────────────────────
   const updateTrade = useCallback(async (id: string, input: Partial<TradeInput>) => {
     if (!user) return;
     const tradeRef = doc(db, "trades", id);
@@ -146,11 +200,11 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
       delete updates.screenshotFile;
     }
     const existing = trades.find(t => t.id === id);
-    if (existing && (input.exitPrice != null || input.entryPrice != null || input.quantity != null)) {
-      const ep = input.entryPrice ?? existing.entryPrice;
-      const xp = input.exitPrice ?? existing.exitPrice;
-      const qty = input.quantity ?? existing.quantity;
-      const dir = input.direction ?? existing.direction;
+    if (existing) {
+      const ep  = input.entryPrice  ?? existing.entryPrice;
+      const xp  = input.exitPrice   ?? existing.exitPrice;
+      const qty = input.quantity    ?? existing.quantity;
+      const dir = input.direction   ?? existing.direction;
       if (xp != null) {
         const { pnl, pnlPercent } = calcPnl(dir, ep, xp, qty);
         updates.pnl = pnl;
@@ -161,12 +215,13 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     await updateDoc(tradeRef, updates);
   }, [user, trades]);
 
+  // ── Delete ───────────────────────────────────────────────
   const deleteTrade = useCallback(async (id: string) => {
     await deleteDoc(doc(db, "trades", id));
   }, []);
 
   return (
-    <TradesContext.Provider value={{ trades, loading, addTrade, updateTrade, deleteTrade }}>
+    <TradesContext.Provider value={{ trades, loading, error, addTrade, updateTrade, deleteTrade }}>
       {children}
     </TradesContext.Provider>
   );

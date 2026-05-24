@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import {
-  doc, getDoc, setDoc, serverTimestamp
-} from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthContext";
 
@@ -25,6 +23,7 @@ const DEFAULT_GOALS: Goals = {
 interface GoalsContextType {
   goals: Goals;
   loading: boolean;
+  error: string | null;
   saveGoals: (g: Goals) => Promise<void>;
 }
 
@@ -34,16 +33,43 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    const docRef = doc(db, "goals", user.uid);
-    getDoc(docRef).then(snap => {
-      if (snap.exists()) {
-        setGoals({ ...DEFAULT_GOALS, ...snap.data() as Goals });
-      }
+    if (!user) {
+      setGoals(DEFAULT_GOALS);
       setLoading(false);
-    });
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    // Safety timeout — never spin forever
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 8_000);
+
+    const docRef = doc(db, "goals", user.uid);
+    getDoc(docRef)
+      .then(snap => {
+        if (snap.exists()) {
+          setGoals({ ...DEFAULT_GOALS, ...(snap.data() as Goals) });
+        }
+      })
+      .catch(err => {
+        console.error("Goals fetch error:", err);
+        setError(err.message ?? "Failed to load goals.");
+        // Don't block the UI — use defaults
+        setGoals(DEFAULT_GOALS);
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setLoading(false);
+      });
+
+    return () => clearTimeout(timeout);
   }, [user]);
 
   const saveGoals = useCallback(async (g: Goals) => {
@@ -54,7 +80,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <GoalsContext.Provider value={{ goals, loading, saveGoals }}>
+    <GoalsContext.Provider value={{ goals, loading, error, saveGoals }}>
       {children}
     </GoalsContext.Provider>
   );
